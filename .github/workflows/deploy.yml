@@ -1,69 +1,82 @@
-name: Deploy to Amazon ECS
+name: Deploy Discord Pin Bot
 
 on:
   push:
-    branches: ["main"]
+    branches: [ main ]
+  workflow_dispatch:
 
 env:
   AWS_REGION: us-east-2
-  ECR_REPOSITORY: alice-discord-bot-prod
-  ECS_SERVICE: alice-discord-bot-prod
-  ECS_CLUSTER: alice-discord-bot-prod
-  CONTAINER_NAME: alice-discord-bot
-  LOG_GROUP_NAME: /ecs/alice-discord-bot-prod
-
-permissions:
-  contents: read
-  id-token: write # Required for OIDC
+  ECR_REPOSITORY: discord-pin-bot
+  ECS_CLUSTER: discord-pin-bot-cluster
+  ECS_SERVICE: discord-pin-bot-service
+  CONTAINER_NAME: discord-pin-bot
 
 jobs:
   deploy:
-    name: Deploy
     runs-on: ubuntu-latest
-    environment: production
-
+    permissions:
+      id-token: write
+      contents: read
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
 
-      - name: Create CloudWatch Log Group
-        run: |
-          aws logs create-log-group --log-group-name ${{ env.LOG_GROUP_NAME }} || true
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          mask-password: true
+    - name: Create ECR repository if not exists
+      run: |
+        aws ecr describe-repositories --repository-names ${ECR_REPOSITORY} || \
+        aws ecr create-repository --repository-name ${ECR_REPOSITORY}
 
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+    - name: Build and push image to ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} .
+        docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image }}
+    - name: Create ECS cluster if not exists
+      run: |
+        aws ecs describe-clusters --clusters ${ECS_CLUSTER} || \
+        aws ecs create-cluster --cluster-name ${ECS_CLUSTER}
 
-      - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+    - name: Deploy to ECS
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Register task definition
+        aws ecs register-task-definition \
+          --family discord-pin-bot \
+          --requires-compatibilities FARGATE \
+          --network-mode awsvpc \
+          --cpu 256 \
+          --memory 512 \
+          --container-definitions "[{\"name\":\"${CONTAINER_NAME}\",\"image\":\"${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}\",\"essential\":true,\"environment\":[{\"name\":\"DISCORD_TOKEN\",\"value\":\"${{ secrets.DISCORD_TOKEN }}\"}],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-group\":\"/ecs/discord-pin-bot\",\"awslogs-region\":\"${AWS_REGION}\",\"awslogs-stream-prefix\":\"ecs\"}}}]"
+
+        # Create or update service
+        if aws ecs describe-services --cluster ${ECS_CLUSTER} --services ${ECS_SERVICE} | grep "MISSING"; then
+          aws ecs create-service \
+            --cluster ${ECS_CLUSTER} \
+            --service-name ${ECS_SERVICE} \
+            --task-definition discord-pin-bot \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ vars.AWS_SUBNET_ID }}],securityGroups=[${{ vars.AWS_SECURITY_GROUP_ID }}],assignPublicIp=ENABLED}"
+        else
+          aws ecs update-service \
+            --cluster ${ECS_CLUSTER} \
+            --service ${ECS_SERVICE} \
+            --task-definition discord-pin-bot \
+            --force-new-deployment
+        fi
