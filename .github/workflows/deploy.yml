@@ -10,6 +10,7 @@ env:
   ECS_SERVICE: alice-discord-bot-prod
   ECS_CLUSTER: alice-discord-bot-prod
   CONTAINER_NAME: alice-discord-bot
+  LOG_GROUP_NAME: /ecs/alice-discord-bot-prod
 
 permissions:
   contents: read
@@ -30,6 +31,10 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create CloudWatch Log Group
+        run: |
+          aws logs create-log-group --log-group-name ${{ env.LOG_GROUP_NAME }} || true
 
       - name: Login to Amazon ECR
         id: login-ecr
