@@ -5,11 +5,11 @@ on:
     branches: ["main"]
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY: discord-bot
-  ECS_SERVICE: discord-bot-service
-  ECS_CLUSTER: discord-bot-cluster
-  CONTAINER_NAME: discord-bot
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY: alice-discord-bot-prod
+  ECS_SERVICE: alice-discord-bot-prod
+  ECS_CLUSTER: alice-discord-bot-prod
+  CONTAINER_NAME: alice-discord-bot
 
 permissions:
   contents: read
