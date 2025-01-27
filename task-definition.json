@@ -4,8 +4,8 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
-  "executionRoleArn": "${TASK_EXECUTION_ROLE_ARN}",
-  "taskRoleArn": "${TASK_ROLE_ARN}",
+  "executionRoleArn": "${{ env.TASK_EXECUTION_ROLE_ARN }}",
+  "taskRoleArn": "${{ env.TASK_ROLE_ARN }}",
   "containerDefinitions": [
     {
       "name": "alice-discord-bot",
