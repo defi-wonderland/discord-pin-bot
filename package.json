@@ -3,8 +3,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "dotenvx run -- node dist/index.js",
-    "dev": "dotenvx run -- tsx watch src/index.ts",
+    "start": "dotenvx run -f .env -- node dist/index.js",
+    "dev": "dotenvx run  -f .env -- tsx watch src/index.ts",
     "lint": "eslint src"
   },
   "dependencies": {
