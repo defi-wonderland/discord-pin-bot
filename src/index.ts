@@ -10,10 +10,10 @@ import {
   TextChannel,
   ThreadChannel
 } from "discord.js";
-import dotenv from "dotenv";
+import { config } from "@dotenvx/dotenvx";
 
 // Load environment variables
-dotenv.config();
+config();
 
 // Initialize Discord client with required intents
 const client = new Client({
@@ -97,7 +97,7 @@ async function handlePinOperation(
   } catch (error) {
     console.error(`Error during ${action} operation:`, error);
     await interaction.reply({ 
-      content: `Failed to ${action} message. Please check bot permissions.`,
+      content: `Failed to ${action} message. Please check bot permissions. If you are in a private thread, please tag @Pin Bot first to invite me.`,
       ephemeral: true 
     });
   }
