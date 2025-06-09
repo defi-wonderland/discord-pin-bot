@@ -1,44 +1,38 @@
 # Discord Pin Bot
+Want to let members pin messages without giving them full message management permissions? Discord Pin Bot solves this by providing pin/unpin functionality through simple context menu commands, no broad permissions needed.
 
-A Discord bot that adds pin/unpin functionality through context menu commands.
+If you wanna use it, hosting it in [Railway](https://railway.com) takes less than minutes to setup.
 
-## Local Development
+![How to use Discord Pin Bot](./demo.gif)
 
-### Prerequisites
-- Node.js 20+
-- pnpm
-- Discord Bot Token
 
-### Setup
+## Setup
+
+### Environment Configuration
+This project uses [dotenvx](https://dotenvx.com/) for encrypted environment variable management. To set up your environment:
+
+1. **Set up encryption** (this creates `.env.keys` automatically):
+   ```bash
+   npx dotenvx encrypt
+   ```
+
+2. **Add your Discord bot token**:
+   ```bash
+   npx dotenvx set DISCORD_TOKEN="your_bot_token_here"
+   ```
+
+### Running the Bot
 ```bash
-# Install dependencies
-pnpm install
-
-# Create .env with your Discord token
-echo "DISCORD_TOKEN=your_token_here" > .env
-
-# Run locally
-pnpm dev
+npm run dev    # Development with hot reload
+npm run build  # Build TypeScript
+npm run start  # Production start
 ```
 
-## Deployment
+## Features
 
-1. Configure GitHub repository:
-   - Secrets:
-     - `AWS_ROLE_ARN`: IAM role for GitHub Actions
-     - `DISCORD_TOKEN`: Discord bot token
-   - Variables:
-     - `AWS_SUBNET_ID`: Public subnet ID
-     - `AWS_SECURITY_GROUP_ID`: Security group ID
-
-2. Deploy:
-   - Automatic on push to main
-   - Manual via GitHub Actions
-
-3. Cleanup:
-   - Use "Cleanup AWS Resources" workflow in GitHub Actions
-
-## Usage
-
-1. Right-click any message
-2. Apps → "Pin Message" or "Unpin Message"
+- 📌 **Context Menu Commands**: Pin and unpin messages via right-click menu
+- 🔔 **Smart Notifications**: Automatic notifications when messages are pinned/unpinned
+- 🛡️ **Error Handling**: Graceful error handling with helpful user feedback
+- 🧵 **Thread Support**: Works in both text channels and threads
+- ✅ **State Validation**: Prevents redundant pin/unpin operations
+- 🔒 **Permission Aware**: Clear error messages for permission issues
