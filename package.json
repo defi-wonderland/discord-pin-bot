@@ -3,13 +3,13 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts",
-    "lint": "eslint src --ext ts"
+    "start": "dotenvx run -f .env -- node dist/index.js",
+    "dev": "dotenvx run  -f .env -- tsx watch src/index.ts",
+    "lint": "eslint src"
   },
   "dependencies": {
-    "discord.js": "14.17.3",
-    "dotenv": "16.4.7"
+    "@dotenvx/dotenvx": "1.44.1",
+    "discord.js": "14.17.3"
   },
   "devDependencies": {
     "@types/node": "22.10.10",
